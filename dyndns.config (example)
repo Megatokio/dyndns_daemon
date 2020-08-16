@@ -1,0 +1,29 @@
+
+
+# config file for Kio's dyndns_daemon
+
+# example file
+# this file must be saved as "~/.dyndns.config"
+# all settings may be quoted
+
+# required:
+domain: mydomain.de
+dyndns: dyndns.org/update
+username: username_for_dyndns
+password: password_for_dyndns
+
+# these are defaults:
+verbose: yes
+daemon:  yes
+logdir: /var/log/dyndns_daemon/
+ip4: 1
+ip6: 0
+
+# these are always added:
+getmyip: checkip.dyn.com/
+getmyip: checkip.dyndns.org/
+
+# this default is derived from the domain:
+pingself: mydomain.de/
+
+
