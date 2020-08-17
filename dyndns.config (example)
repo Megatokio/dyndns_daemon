@@ -12,18 +12,21 @@ dyndns: dyndns.org/update
 username: username_for_dyndns
 password: password_for_dyndns
 
-# these are defaults:
+# optional, these are the defaults:
 verbose: yes
 daemon:  yes
 logdir: /var/log/dyndns_daemon/
 ip4: 1
 ip6: 0
 
-# these are always added:
+# add any, these are always added:
 getmyip: checkip.dyn.com/
 getmyip: checkip.dyndns.org/
 
-# this default is derived from the domain:
+# optional, default is the homepage of your domain:
+# the page is retrieved using HEAD only, no body.
+# Using the root directory may me a bad choice if your IP
+# is recycled for s.o. else who also runs a web server...
 pingself: mydomain.de/
 
 

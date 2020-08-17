@@ -124,16 +124,24 @@ static bool ping_self_ok (cstr url)
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &discard_url_data);	// register function to receive data
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
 	curl_easy_setopt(curl, CURLOPT_DNS_CACHE_TIMEOUT, 299L);
+	curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
 	CURLcode res = curl_easy_perform(curl);
-	curl_easy_cleanup(curl);
 
-	if (res != CURLE_OK)
+	bool ok = res == CURLE_OK;
+	if (ok)
+	{
+		long result = 666;
+		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &result);
+		ok = result >= 200 && result < 400;
+		if (!ok) logline("%s: http result code = %li", url, result);
+	}
+	else
 	{
 		logline("%s: %s", url, curl_easy_strerror(res));
-		return no; // failed
 	}
 
-	return yes;
+	curl_easy_cleanup(curl);
+	return ok;
 }
 
 __attribute__((unused))
@@ -243,7 +251,7 @@ static void dyndns_updater()
 		try
 		{
 			logline("ping self ...");
-			while (ping_self_ok(pingselfurl)) { sleep(30); }
+			while (ping_self_ok(pingselfurl)) { sleep(10); }
 
 			if (ping_self_ok("http://127.0.0.1/"))
 			{
