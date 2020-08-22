@@ -60,7 +60,7 @@ static size_t store_url_data (void* data, size_t size, size_t nmemb, char** user
 
 	size_t oldsize = bu?strlen(bu)-1 : 0;
 	size_t newsize = oldsize + size;
-	str s = newstr(uint32(newsize));
+	str s = tempstr(uint32(newsize));
 	memcpy(s,bu,oldsize);
 	memcpy(s+oldsize,data,size);
 	bu = s;
@@ -373,7 +373,9 @@ int main (int argc, cstr argv[])
 		if (argc > 2 || (argc == 2 && *argv[1] == '-')) // -h or --help or unknown option:
 		{
 			printf("dyndns_updater (c) 2015-2020 kio@little-bat.de\n"
-				   "https://k1.spdns.de/Develop/Projects/dyndns_daemon\n");
+				   "  https://github.com/Megatokio/dyndns_daemon\n"
+				   "  usage: dyndns_updater [configfile]\n");
+			return 1;
 		}
 
 		cstr config = argc==2 ? argv[1] : quick_fullpath("~/.dyndns.config");
