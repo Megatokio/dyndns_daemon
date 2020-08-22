@@ -2,21 +2,19 @@
 
 ### a dynDNS update daemon
 
-This is a simple deamon for updating a domain name at a dynDNS service.
-It's currently developped and tested on my Linux PC.
+This is a simple deamon for updating a domain at a dynDNS service.
 
-You also need to checkout https://github.com/megatokio/Libraries. (uppercase 'L')
-This project already contains a symlink to '../Libraries'.
+You also need https://github.com/megatokio/Libraries in the same directory (or change the symlink) and libcurl.
 
-The project requires lib curl and lib pthreads.
+The daemon is developed and tested on Linux but should work on most unixes too.
 
-I use the Qt Creator IDE for development and building.
-A Makefile should be staight forward, take a look into .pro file what's needed.
+The .pro file is for the Qt Creator IDE
+and a Makefile is also provided.
 
-Currently supported:
+#### Currently supported:
 * IP v4
 
-Planned:
+#### Planned:
 * IP v6
 
 
