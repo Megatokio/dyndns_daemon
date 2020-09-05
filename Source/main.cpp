@@ -76,7 +76,7 @@ static str get_url (cstr url, bool httpauth=no)
 	// returns nullptr on error
 
 	CURL* curl = curl_easy_init();
-	if (!curl) throw any_error("curl_easy_init failed");
+	if (!curl) throw AnyError("curl_easy_init failed");
 
 	char* bu = nullptr;
 
@@ -119,7 +119,7 @@ static bool ping_self_ok (cstr url)
 	// return true: ok
 
 	CURL* curl = curl_easy_init();
-	if (!curl) throw any_error("curl_easy_init failed");
+	if (!curl) throw AnyError("curl_easy_init failed");
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &discard_url_data);	// register function to receive data
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
@@ -222,7 +222,7 @@ static bool update_my_ip (cstr newip)
 	// or error:   badsys badagent badauth !donator notfqdn nohost !yours numhost abuse dnserr 911
 
 	if (startswith(newip,"10.") || startswith(newip,"127.") || startswith(newip,"0") || startswith(newip,"192."))
-		throw any_error("bad ip: %s", newip);	// configuration error
+		throw AnyError("bad ip: %s", newip);	// configuration error
 
 	str hostname = curl_escape(mydomain,0);
 	cstr url = catstr(updatehost, "?hostname=", hostname, "&myip=", newip);
@@ -327,7 +327,7 @@ static void parse_config (cstr configfile)
 		if (*s==0) continue;			// empty line
 
 		cptr sep = strchr(s,':');
-		if (!sep) throw any_error("colon missing: %s", s);
+		if (!sep) throw AnyError("colon missing: %s", s);
 
 		cstr key = lowerstr(substr(s,sep));
 
@@ -349,13 +349,13 @@ static void parse_config (cstr configfile)
 		if (eq(key,"getmyip"))	{ getmyiphosts.appendifnew(val); continue; }
 		if (eq(key,"logdir"))	{ logdir = val; continue; }
 
-		throw any_error("unknown option: %s", key);
+		throw AnyError("unknown option: %s", key);
 	}
 
-	if (!mydomain) throw any_error("'domain' missing");
-	if (!updatehost) throw any_error("'dyndns' missing");
-	if (!username) throw any_error("'username' missing");
-	if (!password) throw any_error("'password' missing");
+	if (!mydomain) throw AnyError("'domain' missing");
+	if (!updatehost) throw AnyError("'dyndns' missing");
+	if (!username) throw AnyError("'username' missing");
+	if (!password) throw AnyError("'password' missing");
 
 	if (!pingselfurl) pingselfurl = catstr(mydomain,"/");
 
@@ -392,7 +392,7 @@ int main (int argc, cstr argv[])
 		//curl_global_cleanup();
 	}
 	catch (cstr& e)          { abort("%s: unexpected error: %s",APPL_NAME,e); }
-	catch (any_error& e) 	 { abort("%s: unexpected error: %s",APPL_NAME,e.what()); }
+	catch (AnyError& e) 	 { abort("%s: unexpected error: %s",APPL_NAME,e.what()); }
 	catch (std::exception& e){ abort("%s: unexpected exception: %s",APPL_NAME,e.what()); }
 }
 
