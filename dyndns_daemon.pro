@@ -8,6 +8,7 @@ CONFIG += precompiled_header
 CONFIG(release,debug|release) { DEFINES += NDEBUG RELEASE } # ATTN: curly brace must start in same line!
 CONFIG(debug,debug|release) { DEFINES += DEBUG } # ATTN: curly brace must start in same line!
 
+QMAKE_CXXFLAGS_RELEASE += -Os
 
 LIBS += -lpthread
 LIBS += -lcurl
@@ -42,10 +43,9 @@ HEADERS += \
 	Libraries/kio/errors.h \
 	Libraries/kio/error_emacs.h \
 	Libraries/cstrings/cstrings.h \
-	Libraries/unix/tempmem.h \
+	Libraries/cstrings/tempmem.h \
 	Libraries/unix/files.h \
 	Libraries/unix/log.h \
-	Libraries/unix/files.h
 
 
 

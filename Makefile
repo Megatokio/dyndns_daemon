@@ -1,5 +1,5 @@
 #############################################################################
-# 	Makefile for building zasm
+# 	Makefile for building the dyndns_daemon
 #############################################################################
 
 TARGET      = dyndns_daemon
