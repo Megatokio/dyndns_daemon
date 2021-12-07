@@ -1,4 +1,4 @@
-/*	Copyright  (c)	Günter Woigk 2015 - 2020
+/*	Copyright  (c)	Günter Woigk 2015 - 2021
 					mailto:kio@little-bat.de
 
 	This file is free software.
@@ -21,6 +21,9 @@
 #include "unix/files.h"
 #include <curl/curl.h>		// https://curl.haxx.se/libcurl/c/
 #include "Templates/Array.h"
+
+#undef curl_easy_setopt		// macro that replaces a call with the exact same call
+#undef curl_easy_getinfo	// ""
 
 cstr APPL_NAME;
 static cstr logdir;
@@ -58,10 +61,10 @@ static size_t store_url_data (void* data, size_t size, size_t nmemb, char** user
 
 	char*& bu = *userdata;
 
-	size_t oldsize = bu?strlen(bu)-1 : 0;
+	size_t oldsize = bu ? strlen(bu)-1 : 0;
 	size_t newsize = oldsize + size;
 	str s = tempstr(uint32(newsize));
-	memcpy(s,bu,oldsize);
+	if (bu) memcpy(s,bu,oldsize);
 	memcpy(s+oldsize,data,size);
 	bu = s;
 
@@ -132,7 +135,7 @@ static bool ping_self_ok (cstr url)
 	{
 		long result = 666;
 		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &result);
-		ok = result >= 200 && result < 400;
+		ok = res == CURLE_OK && result >= 200 && result < 400;
 		if (!ok) logline("%s: http result code = %li", url, result);
 	}
 	else
@@ -204,13 +207,20 @@ static cstr get_my_ip()
 
 	for(;;)
 	{
+		time_t t0 = now<time_t>();
+
 		for (uint i=0; i < getmyiphosts.count(); i++)
 		{
 			cstr myip = get_my_ip(getmyiphosts[i]);
 			if (myip) return myip;
 		}
 		logline("no answer from any ip server. network down?");
-		//sleep(60);  <-- we already had to wait for tcp timeouts
+
+		// wait 60 seconds:
+		// we already had to wait for tcp timeouts
+		// but if network down then timeout may be 0!
+		time_t dur = now<time_t>() - t0;
+		if (60-dur > 0) sleep(uint(60-dur));
 	}
 }
 
@@ -372,7 +382,7 @@ int main (int argc, cstr argv[])
 
 		if (argc > 2 || (argc == 2 && *argv[1] == '-')) // -h or --help or unknown option:
 		{
-			printf("dyndns_updater (c) 2015-2020 kio@little-bat.de\n"
+			printf("dyndns_updater (c) 2015-2021 kio@little-bat.de\n"
 				   "  https://github.com/Megatokio/dyndns_daemon\n"
 				   "  usage: dyndns_updater [configfile]\n");
 			return 1;
