@@ -339,13 +339,6 @@ __attribute__((noreturn)) static void dyndns_updater() noexcept
 		cstr old_ip4 = ifv4.published_address.get();
 		cstr old_ip6 = ifv6.published_address.get();
 
-		bool if4_needs_update = ss4 == Unreachable || (ss4 == Stopped && old_ip4 != nullptr);
-		bool if6_needs_update = ss6 == Unreachable || (ss6 == Stopped && old_ip6 != nullptr);
-
-		if (!if4_needs_update && !if6_needs_update) continue;
-
-		logline("--- host unreachable ---");
-
 		cstr new_ip4 = ss4 == Stopped ? nullptr : ss4 == Reachable && old_ip4 ? old_ip4 : ifv4.get_my_ip();
 		cstr new_ip6 = ss6 == Stopped ? nullptr : ss6 == Reachable && old_ip6 ? old_ip6 : ifv6.get_my_ip();
 
