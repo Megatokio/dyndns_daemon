@@ -353,8 +353,23 @@ __attribute__((noreturn)) static void dyndns_updater() noexcept
 			continue;
 		}
 
-		if (ifv4.enabled) logline("new ipv4: %s", new_ip4 ? new_ip4 : "offline");
-		if (ifv6.enabled) logline("new ipv6: %s", new_ip6 ? new_ip6 : "offline");
+		if (ifv4.enabled && verbose) logline("old ipv4: %s", old_ip4 ? old_ip4 : "offline");
+		if (ifv4.enabled)
+			logline(
+				"new ipv4: %s (%s)", new_ip4 ? new_ip4 : "offline",
+				eq(new_ip4, old_ip4) ? "no change" : "needs update");
+
+		if (ifv6.enabled && verbose) logline("old ipv6: %s", old_ip6 ? old_ip6 : "offline");
+		if (ifv6.enabled)
+			logline(
+				"new ipv6: %s (%s)", new_ip6 ? new_ip6 : "offline",
+				eq(new_ip6, old_ip6) ? "no change" : "needs update");
+
+		if (new_ip4 == old_ip4 && new_ip6 == old_ip6)
+		{
+			logline("ip address did not change. routing correctly configured?\n");
+			continue;
+		}
 
 		if (update_my_ip(new_ip4, new_ip6))
 		{
