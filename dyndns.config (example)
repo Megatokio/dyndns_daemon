@@ -1,32 +1,40 @@
 
 
-# config file for Kio's dyndns_daemon
+# config file for Kio's dyndns_daemon v2
 
 # example file
 # this file must be saved as "~/.dyndns.config"
 # all settings may be quoted
 
-# required:
-domain: mydomain.de
-dyndns: dyndns.org/update
-username: username_for_dyndns
-password: password_for_dyndns
 
-# optional, these are the defaults:
-verbose: yes
-daemon:  yes
-logdir: /var/log/dyndns_daemon/
-ip4: 1
-ip6: 0
+#required:
 
-# add any, these are always added:
-getmyip: checkip.dyn.com/
-getmyip: checkip.dyndns.org/
+domain:   mydomain.dyndns.de
+pingself: mydomain.dyndns.de/
+getmyip:  dyndns.com/checkip
+update:   dyndns.com/update
+query:    hostname={DOMAIN}&myipv4={IP4}&myipv6={IP6}
+query:    hostname={DOMAIN}&myip={IP4}
+query:    hostname={DOMAIN}&myip={IP6}
+username: Anton123
+password: "sadfads_987HJcc"
 
-# optional, default is the homepage of your domain:
-# the page is retrieved using HEAD only, no body.
-# Using the root directory may me a bad choice if your IP
-# is recycled for s.o. else who also runs a web server...
-pingself: mydomain.de/
+
+#optional:
+
+logdir:  /var/log/dyndns_daemon/
+
+
+# The query string defines which interfaces (IPv4 and/or IPv6) are updated.
+
+# Up to 3 query strings can be given for IPv4 only, IPv6 only and IPv4 plus IPv6
+# depending on which interface(s) your web server listens to.
+
+# If both interfaces are defined but only one works, then only the working interface is updated
+# and the other one is removed from the DNS. The single-IP versions needed to to this are
+# automatically deferred if the IPs are defined in 2 separate variables as in the example above.
+
+# Instead of pinging your web server root directory you can ping any other file.
+# ping only fetches the HEAD.
 
 
