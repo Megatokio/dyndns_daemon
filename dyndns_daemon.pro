@@ -46,7 +46,7 @@ HEADERS += \
 	Libraries/cstrings/tempmem.h \
 	Libraries/unix/files.h \
 	Libraries/unix/log.h \
-
+	Libraries/Templates/Array.h \
 
 
 
