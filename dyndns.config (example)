@@ -10,7 +10,6 @@
 #required:
 
 domain:   mydomain.dyndns.de
-pingself: mydomain.dyndns.de/
 getmyip:  dyndns.com/checkip
 update:   dyndns.com/update
 query:    hostname={DOMAIN}&myipv4={IP4}&myipv6={IP6}
@@ -22,6 +21,7 @@ password: "sadfads_987HJcc"
 
 #optional:
 
+pingself: {DOMAIN}/
 logdir:  /var/log/dyndns_daemon/
 
 

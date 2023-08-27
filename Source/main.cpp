@@ -36,7 +36,7 @@ static cstr query_ipv4; // = "hostname=&{DOMAIN}&myipv4={IP4}";
 static cstr query_ipv6; // = "hostname=&{DOMAIN}&myipv4={IP6}";
 static cstr username;
 static cstr password;
-static cstr pingselfurl;
+static cstr pingselfurl = "{DOMAIN}/";
 static cstr getmyipurl;
 
 
@@ -313,8 +313,8 @@ cstr Interface::get_my_ip() noexcept
 ServerStatus Interface::check_status() noexcept
 {
 	if (!enabled) return Stopped;
-	if (ping_self(pingselfurl)) return Reachable;
-	if (ping_self(loopback)) return Unreachable;
+	if (ping_self(replacedstr(pingselfurl, "{DOMAIN}", mydomain))) return Reachable;
+	if (ping_self(replacedstr(pingselfurl, "{DOMAIN}", loopback))) return Unreachable;
 	return Stopped;
 }
 
@@ -502,6 +502,7 @@ static void parse_config(cstr configfile) throws
 
 		if (eq(key, "pingself"))
 		{
+			if (!find(val, "{DOMAIN}")) throw "expected '{DOMAIN}' in pingself";
 			pingselfurl = val;
 			continue;
 		}
@@ -517,6 +518,7 @@ static void parse_config(cstr configfile) throws
 		}
 		if (eq(key, "query"))
 		{
+			if (!find(val, "{DOMAIN}")) throw "expected '{DOMAIN}' in query string";
 			if (*val == '?') val++;
 			bool ip4 = find(val, "{IP4}");
 			bool ip6 = find(val, "{IP6}");
@@ -531,7 +533,6 @@ static void parse_config(cstr configfile) throws
 	}
 
 	if (!mydomain) throw "'domain' missing";
-	if (!pingselfurl) pingselfurl = catstr(mydomain, "/");
 	if (!getmyipurl) throw "'getmyip' missing";
 	if (!updatehost) throw "'update' missing";
 	if (!username) throw "'username' missing";
