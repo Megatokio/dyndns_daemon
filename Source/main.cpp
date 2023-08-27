@@ -67,6 +67,8 @@ struct Interface
 
 // -----------------------------------------------------------------
 
+static cstr tostr(IPversion v) noexcept { return v == ipv4 ? "ipv4" : v == ipv6 ? "ipv6" : "ip_any"; }
+
 static cstr tostr(ServerStatus ss) noexcept
 {
 	static const char s[3][12] = {"stopped", "unreachable", "reachable"};
