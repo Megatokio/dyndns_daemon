@@ -16,7 +16,7 @@ static cstr logdir		  = "/var/log/dyndns_daemon/";
 const char	config_file[] = "~/.dyndns.config";
 const char	useragent[]	  = "dyndns_daemon/2.0";
 const char	usage[] =
-	"dyndns_daemon 2.0 (c) 2015-2023 kio@little-bat.de\n"
+	"dyndns_daemon 2.0.1 (c) 2015-2023 kio@little-bat.de\n"
 	"  https://github.com/Megatokio/dyndns_daemon\n"
 	"  usage: dyndns_daemon [-v -i -f -b] [configfile]\n"
 	"  -v --verbose\n"
@@ -331,8 +331,10 @@ __attribute__((noreturn)) static void dyndns_updater() noexcept
 		ServerStatus ss4 = ifv4.check_status();
 		ServerStatus ss6 = ifv6.check_status();
 
-		//if ((ss4 == Reachable || !ifv4.enabled) && (ss6 == Reachable || !ifv6.enabled)) continue;
+		if ((ss4 == Reachable || !ifv4.enabled) && (ss6 == Reachable || !ifv6.enabled)) continue;
 		if (ss4 == Stopped && ss6 == Stopped) continue;
+
+		logline("--- host unreachable ---");
 
 		cstr old_ip4 = ifv4.published_address.get();
 		cstr old_ip6 = ifv6.published_address.get();
@@ -365,7 +367,7 @@ __attribute__((noreturn)) static void dyndns_updater() noexcept
 				"new ipv6: %s (%s)", new_ip6 ? new_ip6 : "offline",
 				eq(new_ip6, old_ip6) ? "no change" : "needs update");
 
-		if (new_ip4 == old_ip4 && new_ip6 == old_ip6)
+		if (eq(new_ip4, old_ip4) && eq(new_ip6, old_ip6))
 		{
 			logline("ip address did not change. routing correctly configured?\n");
 			continue;
