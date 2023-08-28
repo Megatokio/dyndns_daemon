@@ -362,7 +362,7 @@ __attribute__((noreturn)) static void dyndns_updater() noexcept
 
 		if (eq(new_ip4, old_ip4) && eq(new_ip6, old_ip6))
 		{
-			logline("ip address did not change. routing correctly configured?\n");
+			logline("ip address did not change. routing correctly configured?");
 			continue;
 		}
 
