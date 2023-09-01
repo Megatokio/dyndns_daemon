@@ -16,7 +16,7 @@ static cstr logdir		  = "/var/log/dyndns_daemon/";
 const char	config_file[] = "~/.dyndns.config";
 const char	useragent[]	  = "dyndns_daemon/2.0";
 const char	usage[] =
-	"dyndns_daemon 2.0.1 (c) 2015-2023 kio@little-bat.de\n"
+	"dyndns_daemon 2.0.2 (c) 2015-2023 kio@little-bat.de\n"
 	"  https://github.com/Megatokio/dyndns_daemon\n"
 	"  usage: dyndns_daemon [-v -i -f -b] [configfile]\n"
 	"  -v --verbose\n"
@@ -46,8 +46,6 @@ enum IPversion {
 	ipv6   = CURL_IPRESOLVE_V6,
 };
 
-enum ServerStatus { Stopped, Unreachable, Reachable };
-
 struct Interface
 {
 	int				enabled;		// in query string?
@@ -57,23 +55,14 @@ struct Interface
 	cstr (*const extract_ip)(cstr); // &extract_ipv4
 	bool (*const is_local)(cstr);	// &is_local_ipv4_address
 
-	std::unique_ptr<char[]> published_address;
-
-	ServerStatus check_status() noexcept;
-	bool		 ping_self(cstr pingselfurl);
-	cstr		 get_my_ip() noexcept;
+	bool ping_self(cstr pingselfurl);
+	cstr get_my_ip() noexcept;
 };
 
 
 // -----------------------------------------------------------------
 
 static cstr tostr(IPversion v) noexcept { return v == ipv4 ? "ipv4" : v == ipv6 ? "ipv6" : "ip_any"; }
-
-static cstr tostr(ServerStatus ss) noexcept
-{
-	static const char s[3][12] = {"stopped", "unreachable", "reachable"};
-	return s[ss];
-}
 
 static size_t store_url_data(void* data, size_t size, size_t nmemb, char** userdata) noexcept
 {
@@ -230,7 +219,7 @@ static bool update_my_ip(cstr new_ipv4, cstr new_ipv6) noexcept
 	str result = get_url(url, ip_any, yes /*auth*/);
 	if (!result || !*result)
 	{
-		if (verbose) logline("update_my_ip: get_url returned no data"); // already reported by get_url
+		logline("update_my_ip: get_url returned no data"); // already reported by get_url
 		return false;
 	}
 
@@ -239,13 +228,13 @@ static bool update_my_ip(cstr new_ipv4, cstr new_ipv6) noexcept
 
 	tolower(result);
 	bool ok = startswith(result, "good") || startswith(result, "nochg");
-	if (verbose || !ok) logline("update_my_ip: %s", result);
+	logline("update_my_ip: %s", result);
 	return ok;
 }
 
 
-static Interface ifv4 = {false, ipv4, "ipv4", "127.0.0.1", &extract_ipv4, &isa_local_ipv4_address, nullptr};
-static Interface ifv6 = {false, ipv6, "ipv6", "[::1]", &extract_ipv6, &isa_local_ipv6_address, nullptr};
+static Interface ifv4 = {false, ipv4, "ipv4", "127.0.0.1", &extract_ipv4, &isa_local_ipv4_address};
+static Interface ifv6 = {false, ipv6, "ipv6", "[::1]", &extract_ipv6, &isa_local_ipv6_address};
 
 
 bool Interface::ping_self(cstr pingselfurl)
@@ -292,7 +281,7 @@ cstr Interface::get_my_ip() noexcept
 	str data = get_url(getmyipurl, ip_version);
 	if (data == nullptr)
 	{
-		if (verbose) logline("get_my_ip: %s: get_url returned no data", name); // allready reported by get_url
+		logline("get_my_ip: %s: get_url returned no data", name); // allready reported by get_url
 		return nullptr;
 	}
 
@@ -309,75 +298,56 @@ cstr Interface::get_my_ip() noexcept
 	return nullptr;
 }
 
-
-ServerStatus Interface::check_status() noexcept
-{
-	if (!enabled) return Stopped;
-	if (ping_self(replacedstr(pingselfurl, "{DOMAIN}", mydomain))) return Reachable;
-	if (ping_self(replacedstr(pingselfurl, "{DOMAIN}", loopback))) return Unreachable;
-	return Stopped;
-}
-
+static bool ping4_ok(cstr ip) { return !ip || ifv4.ping_self(replacedstr(pingselfurl, "{DOMAIN}", ip)); }
+static bool ping6_ok(cstr ip) { return !ip || ifv6.ping_self(replacedstr(pingselfurl, "{DOMAIN}", ip)); }
 
 __attribute__((noreturn)) static void dyndns_updater() noexcept
 {
 	logline("%s running.", APPL_NAME);
+a:
+	sleep(10);
+aa:
+	TempMemPool z;
+
+	logline("waiting for local web server ...");
+	bool if4_online = ifv4.enabled && ping4_ok(ifv4.loopback);
+	bool if6_online = ifv6.enabled && ping6_ok(ifv6.loopback);
+	if (!if4_online && !if6_online) goto a;
+	if (ifv4.enabled && !if4_online) if4_online = ping4_ok(ifv4.loopback);
+	if (ifv6.enabled && !if6_online) if6_online = ping6_ok(ifv6.loopback);
+
+	logline("query own IP address");
+	cstr ip4 = if4_online ? ifv4.get_my_ip() : nullptr;
+	cstr ip6 = if6_online ? ifv6.get_my_ip() : nullptr;
+	if ((if4_online && !ip4) || (if6_online && !ip6)) goto a;
+
+	logline("update dyndns address");
+	if (!update_my_ip(ip4, ip6)) goto a;
+
+	bool success = false;
+	for (uint t = 0; !success && t < 5 * 60; t += 30)
+	{
+		logline("waiting for dns propagation ...");
+		sleep(30);
+		success = (!ip4 || ping4_ok(mydomain)) && (!ip6 || ping6_ok(mydomain));
+	}
+	if (!success)
+	{
+		logline("host fails to show up");
+		goto a;
+	}
+
+	logline("+++ host reachable +++");
 
 	for (;;)
 	{
-		sleep(10);
-		TempMemPool z;
-
-		ServerStatus ss4 = ifv4.check_status();
-		ServerStatus ss6 = ifv6.check_status();
-
-		if ((ss4 == Reachable || !ifv4.enabled) && (ss6 == Reachable || !ifv6.enabled)) continue;
-		if (ss4 == Stopped && ss6 == Stopped) continue;
-
-		logline("--- host unreachable ---");
-
-		cstr old_ip4 = ifv4.published_address.get();
-		cstr old_ip6 = ifv6.published_address.get();
-
-		cstr new_ip4 = ss4 == Stopped ? nullptr : ss4 == Reachable && old_ip4 ? old_ip4 : ifv4.get_my_ip();
-		cstr new_ip6 = ss6 == Stopped ? nullptr : ss6 == Reachable && old_ip6 ? old_ip6 : ifv6.get_my_ip();
-
-		if (!new_ip4 && !new_ip6)
-		{
-			logline("get_my_ip: no answer. network down?\n");
-			continue;
-		}
-
-		if (ifv4.enabled && verbose) logline("old ipv4: %s", old_ip4 ? old_ip4 : "offline");
-		if (ifv4.enabled)
-			logline(
-				"new ipv4: %s (%s)", new_ip4 ? new_ip4 : "offline",
-				eq(new_ip4, old_ip4) ? "no change" : "needs update");
-
-		if (ifv6.enabled && verbose) logline("old ipv6: %s", old_ip6 ? old_ip6 : "offline");
-		if (ifv6.enabled)
-			logline(
-				"new ipv6: %s (%s)", new_ip6 ? new_ip6 : "offline",
-				eq(new_ip6, old_ip6) ? "no change" : "needs update");
-
-		if (eq(new_ip4, old_ip4) && eq(new_ip6, old_ip6))
-		{
-			logline("ip address did not change. routing correctly configured?");
-			continue;
-		}
-
-		if (update_my_ip(new_ip4, new_ip6))
-		{
-			logline("update_my_ip: success");
-			ifv4.published_address.reset(newcopy(new_ip4));
-			ifv6.published_address.reset(newcopy(new_ip6));
-			logline("+++ host reachable +++");
-		}
-		else logline("update_my_ip: failed");
-
-		logline("sleeping (300s) ...");
-		sleep(300);
+		sleep(30);
+		if (ip4 && !ping4_ok(mydomain) && !ping4_ok(mydomain)) break;
+		if (ip6 && !ping6_ok(mydomain) && !ping6_ok(mydomain)) break;
 	}
+
+	logline("\n--- host unreachable ---");
+	goto aa;
 }
 
 void show_info()
@@ -420,13 +390,11 @@ void show_info()
 	printf("\ninterface ipv4: %s\n", ifv4.enabled ? "enabled" : "disabled");
 	printf("ping self (loopback): %s\n", ifv4.ping_self(ifv4.loopback) ? "ok" : "failed");
 	printf("ping self (domain): %s\n", ifv4.ping_self(mydomain) ? "ok" : "failed");
-	printf("server status: %s\n", tostr(ifv4.check_status()));
 	printf("ip address: %s\n", ifv4.get_my_ip());
 
 	printf("\ninterface ipv6: %s\n", ifv6.enabled ? "enabled" : "disabled");
 	printf("ping self (loopback): %s\n", ifv6.ping_self(ifv6.loopback) ? "ok" : "failed");
 	printf("ping self (domain): %s\n", ifv6.ping_self(mydomain) ? "ok" : "failed");
-	printf("server status: %s\n", tostr(ifv6.check_status()));
 	printf("ip address: %s\n\n", ifv6.get_my_ip());
 }
 
